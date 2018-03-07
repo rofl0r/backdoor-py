@@ -71,6 +71,8 @@ class RsIRC():
 				return self.conn.recvline().rstrip('\r\n')
 			except RocksockException as e:
 				print "XXX" + e.get_errormessage()
-				e.reraise()
+				import traceback, sys
+				traceback.print_exc(file=sys.stdout)
+				# e.reraise()
 				self.reconnect()
 
