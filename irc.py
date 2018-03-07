@@ -38,6 +38,7 @@ class RsIRC():
 				break
 			except RocksockException as e:
 				print e.get_errormessage()
+				import time
 				time.sleep(0.05)
 				continue
 
