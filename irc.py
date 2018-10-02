@@ -3,7 +3,7 @@
 from rocksock import Rocksock, RocksockException
 
 class RsIRC():
-	def __init__(self, host, port, nickname, username="foo", realname=None, ssl=False, timeout=60, **kwargs):
+	def __init__(self, host, port, nickname, username="foo", realname=None, ssl=False, timeout=60, proxies=None, **kwargs):
 		self.host = host
 		self.port = port
 		self.use_ssl = ssl
@@ -15,8 +15,9 @@ class RsIRC():
 			raise("username and nickname may not be None")
 		if not self.realname: self.realname = self.username
 		self.timeout = timeout
+		self.proxies = proxies
 		self.conn = None
-		self.reconnect()
+#		self.reconnect()
 
 	def sendl(self, s):
 		return self._send("%s\r\n"%s)
@@ -28,13 +29,19 @@ class RsIRC():
 		self.sendl("NICK %s" % (self.nickname))
 		self.sendl("USER %s %s %s :%s"% (self.username, self.realname, self.host, self.nickname))
 
+	def disconnect(self):
+		self.conn.disconnect()
+
+	def connect(self):
+		if self.conn: self.conn.disconnect()
+		self.conn = Rocksock(host=self.host, port=self.port, ssl=self.use_ssl, timeout=self.timeout, proxies=self.proxies)
+		self.conn.connect()
+		self._handshake()
+
 	def reconnect(self):
 		while True:
 			try:
-				if self.conn: self.conn.disconnect()
-				self.conn = Rocksock(host=self.host, port=self.port, ssl=self.use_ssl, timeout=self.timeout)
-				self.conn.connect()
-				self._handshake()
+				self.connect()
 				break
 			except RocksockException as e:
 				print e.get_errormessage()

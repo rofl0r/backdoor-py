@@ -51,6 +51,7 @@ if __name__ == '__main__':
 	from config import host, botnick, channel, opmask, backdoorserver
 
 	irc = RsIRC(host=host, port=6697, timeout=180, ssl=True, nickname=botnick, username='blah')
+	irc.reconnect()
 	while True:
 		s = irc.readline()
 		try:
