@@ -4,4 +4,5 @@ channel = '#backdoors'
 opmask = 'username@unaffiliated/username'
 backdoorserver = 'myhost.dyndns.org'
 shell = '/bin/bash'
+debug = False
 

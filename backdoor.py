@@ -11,7 +11,7 @@ socat file:`tty`,raw,echo=0 tcp-listen:$port
 from rocksock import Rocksock, RocksockException
 from irc import RsIRC
 
-debug = False
+from config import debug
 
 def print_exception(irc, channel, lines):
 	for line in lines.splitlines():
