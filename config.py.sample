@@ -1,4 +1,10 @@
+# which irc server to use
 host = 'irc.efnet.org'
+# port of irc server
+port = 6697
+#whether server uses ssl
+ssl = True
+
 botnick = 'i_am_a_bot'
 channel = '#backdoors'
 opmask = 'username@unaffiliated/username'
