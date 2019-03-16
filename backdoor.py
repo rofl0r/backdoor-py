@@ -1,5 +1,13 @@
 # -*- coding: utf-8 -*-
 
+"""
+on server:
+#!/bin/sh
+port="$1"
+socat file:`tty`,raw,echo=0 tcp-listen:$port
+"""
+
+
 from rocksock import Rocksock, RocksockException
 from irc import RsIRC
 
