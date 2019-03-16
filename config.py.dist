@@ -1,7 +1,0 @@
-host = 'irc.freenode.net'
-botnick = 'foo_b0t'
-channel = '#ubuntu'
-opmask = 'nick@unaffiliated/nick'
-backdoorserver = '127.0.0.1'
-shell = '/bin/sh'
-
