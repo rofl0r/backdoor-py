@@ -197,11 +197,12 @@ class Rocksock():
 		else:
 			self.sslcontext = None
 		self.proxychain = []
-		for p in proxies:
-			if isinstance(p, basestring):
-				self.proxychain.append(RocksockProxyFromURL(p))
-			else:
-				self.proxychain.append(p)
+		if proxies is not None:
+			for p in proxies:
+				if isinstance(p, basestring):
+					self.proxychain.append(RocksockProxyFromURL(p))
+				else:
+					self.proxychain.append(p)
 		target = RocksockProxy(host, port, RS_PT_NONE)
 		self.proxychain.append(target)
 		self.sock = None
