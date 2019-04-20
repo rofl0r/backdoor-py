@@ -66,7 +66,7 @@ def addresses_bot(word, nickname):
 if __name__ == '__main__':
 	import time
 
-	irc = RsIRC(host=config.host, port=config.port, timeout=180, ssl=config.ssl, nickname=config.botnick, username='blah')
+	irc = RsIRC(host=config.host, port=config.port, timeout=180, ssl=config.ssl, nickname=config.botnick, username='blah', proxies=config.proxies)
 	irc.reconnect()
 	while True:
 		s = irc.readline()

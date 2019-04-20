@@ -179,7 +179,7 @@ def RocksockProxyFromURL(url):
 	if x == -1: return None # port is obligatory
 	port = int(url[x+len(':'):]) #TODO: catch exception when port is non-numeric
 	url = url[:x]
-	x = url.find('@')
+	x = url.rfind('@')
 	if x != -1:
 		u, p = url[:x].split(':')
 		url = url[x+len('@'):]
@@ -196,7 +196,12 @@ class Rocksock():
 			if not verifycert: self.sslcontext.verify_mode = ssl.CERT_NONE
 		else:
 			self.sslcontext = None
-		self.proxychain = copy.copy(proxies) if proxies else []
+		self.proxychain = []
+		for p in proxies:
+			if isinstance(p, basestring):
+				self.proxychain.append(RocksockProxyFromURL(p))
+			else:
+				self.proxychain.append(p)
 		target = RocksockProxy(host, port, RS_PT_NONE)
 		self.proxychain.append(target)
 		self.sock = None

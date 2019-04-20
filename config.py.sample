@@ -5,6 +5,8 @@ port = 6697
 #whether server uses ssl
 ssl = True
 
+proxies = None # ['socks4://127.0.0.1:9050']
+
 botnick = 'i_am_a_bot'
 channel = '#backdoors'
 opmask = 'username@unaffiliated/username'
