@@ -99,6 +99,8 @@ def process_privmsg(nick, mask, dest, text):
 				print_exception(nick, traceback.format_exc())
 		elif words[0] == "!help":
 			config.irc.privmsg(nick, "!auth, !backdoor server port")
+		elif words[0] == "!quit":
+			sys.exit(0)
 
 def main():
 	import time
